@@ -1,4 +1,5 @@
 class Problem:
+
     def __init__(self, states, initial, goal, actions, transition_model, cost):
         self.states = states                #estados possíveis
         if initial not in states:           #verifica se o estado inicial é um estado possível
@@ -25,3 +26,27 @@ class Problem:
             return self.cost[state1][state2]
         else:
             return -1
+ 
+class PriorityQueue:
+        
+        def __init__(self, f):
+            self.elements = []
+            self.f = f
+        
+        def append(self, node):
+            self.elements.append(node)
+            self.elements = sorted(self.elements, key = self.f)
+        
+        def pop(self):
+            return self.elements.pop(0)
+        
+        def __len__(self):
+            return len(self.elements)        
+
+class Node:
+    
+    def __init__(self, state, parent = None, action = None, path_cost = 0):
+        self.state = state          # o estado ao qual o nó corresponde;
+        self.parent = parent        # o nó da árvore que gerou este nó;
+        self.action = action        # a ação executada para gerar este nó;
+        self.path_cost = path_cost  # o custo do caminho do nó inicial até este nó.

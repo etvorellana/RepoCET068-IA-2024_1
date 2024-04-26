@@ -1,4 +1,4 @@
-from problema import Problem
+from problema import Problem, Node, PriorityQueue
 def main():
     states = ['Arad', 'Zerind', 'Oradea', 'Sibiu', 'Timisoara', 
           'Lugoj', 'Mehadia', 'Drobeta', 'Craiova', 'Rimnicu Vilcea', 
@@ -68,7 +68,33 @@ def main():
             'Iasi': {'Vaslui': 92, 'Neamt': 87},
             'Neamt': {'Iasi': 87}}
     Arad2Bucarest = Problem(states, initial, goal, actions, transition_model, cost)
+    arvoreDeBusca = Node(Arad2Bucarest.initial, None, None, 0)
+    print(arvoreDeBusca.state)
 
+
+
+def best_first_search(problem, f):
+    node = Node(problem.initial)
+    frontier = PriorityQueue(f)
+    frontier.append(node)
+    reached = {problem.initial: node}
+    while frontier:
+        node = frontier.pop()
+        if problem.goal_test(node.state):
+            return node
+        for child in expand(problem, node):
+            s = child.state
+            if s not in reached or child.path_cost < reached[s].path_cost:
+                reached[s] = child
+                frontier.append(child)
+    return None
+
+def expand(problem, node):
+    s = node.state
+    for action in problem.actions(s):
+        s_prime = problem.result(s, action)
+        cost = node.path_cost + problem.action_cost(s, action, s_prime)
+        yield Node(s_prime, node, action, cost)
 
 if __name__ == '__main__':
     main()
