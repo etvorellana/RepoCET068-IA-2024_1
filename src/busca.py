@@ -89,6 +89,14 @@ class FIFOQueue(Frontier):
         '''
         self.elements.append(node)
 
+class LIFOQueue(Frontier):
+            
+        def add(self, node):
+            '''
+            ADD(node, frontier) inserts node at the beginning of the queue.
+            '''
+            self.elements.insert(0, node)
+
 class BestFirstSearch:
     def __init__(self, problem, f):
         self.problem = problem
@@ -124,7 +132,6 @@ class BestFirstSearch:
             node = node.parent
         return path_back[::-1]
     
-
 '''
 function BREADTH-FIRST-SEARCH(problem) returns a solution node or failure 
     node←NODE(problem.INITIAL)
@@ -176,6 +183,171 @@ class BreadthFirstSearch:
             s_prime = self.problem.result(s, action)
             cost = node.path_cost + self.problem.action_cost(s, action, s_prime)
             yield Node(s_prime, node, action, cost)
+    def path(self, node):
+        path_back = []
+        while node:
+            path_back.append(node)
+            node = node.parent
+        return path_back[::-1]
+
+""" 
+function ITERATIVE-DEEPENING-SEARCH(problem) returns a solution node or failure 
+    for depth = 0 to ∞ do
+    result←DEPTH-LIMITED-SEARCH(problem,depth) 
+    if result ̸= cutoff then return result
+
+function DEPTH-LIMITED-SEARCH(problem, l) returns a node or failure or cutoff 
+    frontier←a LIFO queue (stack) with NODE(problem.INITIAL) as an element 
+    result ← failure
+    while not IS-EMPTY(frontier) do
+        node←POP(frontier)
+        if problem.IS-GOAL(node.STATE) then return node 
+        if DEPTH(node) > l then
+            result ← cutoff
+        else if not IS-CYCLE(node) do
+            for each child in EXPAND(problem, node) do 
+                add child to frontier
+    return result
+"""
+
+class IterativeDeepeningSearch:
+
+    def __init__(self, problem):
+        self.problem = problem
+
+    def search(self):
+        for depth in range(0, 10000):
+            result = self.depth_limited_search(depth)
+            if result != 'cutoff':
+                return result
+        return None
+
+    def depth_limited_search(self, l):
+        node = Node(self.problem.initial)
+        frontier = LIFOQueue()
+        frontier.add(node)
+        result = None
+        while not frontier.is_empty():
+            node = frontier.pop()
+            if self.problem.goal_test(node.state):
+                return node
+            else:
+                print(node.state, node.path_cost)
+            if self.depth(node) > l:
+                result = 'cutoff'
+            elif not self.is_cycle(node):
+                for child in self.expand(node):
+                    frontier.add(child)
+        return result
+
+    def expand(self, node):
+        s = node.state
+        for action in self.problem.get_actions(s):
+            s_prime = self.problem.result(s, action)
+            cost = node.path_cost + self.problem.action_cost(s, action, s_prime)
+            yield Node(s_prime, node, action, cost)
+
+    def depth(self, node):
+        depth = 0
+        while node:
+            depth += 1
+            node = node.parent
+        return depth
+
+    def is_cycle(self, node):
+        state = node.state
+        while node:
+            node = node.parent
+            if node and node.state == state:
+                return True
+        return False
+    
+    def path(self, node):
+        path_back = []
+        while node:
+            path_back.append(node)
+            node = node.parent
+        return path_back[::-1]
+
+"""
+function BIBF-SEARCH(problemF, fF, problemB, fB) returns a solution node, or failure 
+    nodeF ← NODE(problemF .INITIAL) // Node for a start state
+    nodeB ← NODE(problemB.INITIAL) // Node for a goal state 
+    frontierF ← a priority queue ordered by fF, with nodeF as an element
+    frontierB ← a priority queue ordered by fB, with nodeB as an element 
+    reachedF ← a lookup table, with one key nodeF.STATE and value nodeF 
+    reachedB ← a lookup table, with one key nodeB.STATE and value nodeB 
+    solution ← failure
+    while not TERMINATED(solution, frontierF , frontierB) do 
+        if fF (TOP(frontierF )) < fB(TOP(frontierB)) then
+            solution←PROCEED(F, problemF, frontierF, reachedF, reachedB, solution) 
+        else solution←PROCEED(B, problemB, frontierB, reachedB, reachedF, solution)
+    return solution
+
+function PROCEED(dir, problem, frontier, reached, reached2, solution) returns a solution 
+        // Expand node on frontier; check against the other frontier in reached2.
+        // The variable “dir” is the direction: either F for forward or B for backward.
+    node←POP(frontier)
+    for each child in EXPAND(problem, node) do
+        s←child.STATE
+        if s not in reached or PATH-COST(child) < PATH-COST(reached[s]) then
+            reached[s] ← child
+            add child to frontier
+            if s is in reached2 then
+                solution2 ← JOIN-NODES(dir, child, reached2[s]))
+                if PATH-COST(solution2) < PATH-COST(solution) then
+                    solution ← solution2 
+    return solution
+"""
+
+class BidirectionalBestFirstSearch:
+    def __init__(self, problemF, fF, problemB, fB):
+        self.problemF = problemF
+        self.fF = fF
+        self.problemB = problemB
+        self.fB = fB
+    def search(self):
+        nodeF = Node(self.problemF.initial)
+        nodeB = Node(self.problemB.initial)
+        frontierF = PriorityQueue(self.fF)
+        frontierB = PriorityQueue(self.fB)
+        frontierF.add(nodeF)
+        frontierB.add(nodeB)
+        reachedF = {self.problemF.initial: nodeF}
+        reachedB = {self.problemB.initial: nodeB}
+        solution = None
+        while not self.terminated(solution, frontierF, frontierB):
+            if self.fF(frontierF.top()) < self.fB(frontierB.top()):
+                solution = self.proceed('F', frontierF, reachedF, reachedB, solution)
+            else:
+                solution = self.proceed('B', frontierB, reachedB, reachedF, solution)
+        return solution
+    def proceed(self, direction, frontier, reached, reached2, solution):
+        node = frontier.pop()
+        for child in self.expand(node):
+            s = child.state
+            if s not in reached or child.path_cost < reached[s].path_cost:
+                reached[s] = child
+                frontier.add(child)
+                if s in reached2:
+                    solution2 = self.join_nodes(direction, child, reached2[s])
+                    if solution is None or solution2[0].path_cost < solution[0].path_cost:
+                        solution = solution2
+
+        return solution
+    def join_nodes(self, direction, node1, node2):
+        if direction == 'F':
+            return node1, node2
+        else:
+            return node2, node1
+    def expand(self, node):
+        s = node.state
+        for action in self.problemF.get_actions(s):
+            s_prime = self.problemF.result(s, action)
+            cost = node.path_cost + self.problemF.action_cost(s, action, s_prime)
+            yield Node(s_prime, node, action, cost)
+    def terminated(self, solution, frontierF, frontierB):
+        return solution is not None or frontierF.is_empty() or frontierB.is_empty()
     def path(self, node):
         path_back = []
         while node:
@@ -271,5 +443,28 @@ def main():
     for step in busca.path(node):
         print(step.state, step.path_cost)
 
+    print("__________________________")
+    print("Iterative Deepening Search (Arad -> Bucharest):")
+    busca = IterativeDeepeningSearch(Arad2Bucarest)
+    node = busca.search()
+    print(node.state, node.path_cost)
+    print("Solution:")
+    for step in busca.path(node):
+        print(step.state, step.path_cost)
+
+    print("__________________________")
+    print("Iterative Deepening Search (Arad -> Bucharest):")
+    Bucarest2Arad = Problem(states, goal, initial, actions, transition_model, cost)
+    busca = BidirectionalBestFirstSearch(Arad2Bucarest, lambda node: node.path_cost, 
+                                         Bucarest2Arad, lambda node: node.path_cost)
+    nodes = busca.search()
+    print(nodes[0].state, nodes[0].path_cost, 
+          nodes[1].state, nodes[1].path_cost, nodes[0].path_cost + nodes[1].path_cost)
+    print("Solution:")
+    for step in busca.path(nodes[0]):
+        print(step.state, step.path_cost)
+    for step in busca.path(nodes[1])[::-1]:
+        print(step.state, step.path_cost)
+    
 if __name__ == '__main__':
     main()
