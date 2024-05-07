@@ -453,7 +453,7 @@ def main():
         print(step.state, step.path_cost)
 
     print("__________________________")
-    print("Iterative Deepening Search (Arad -> Bucharest):")
+    print("Bidirectional search (Arad -> Bucharest):")
     Bucarest2Arad = Problem(states, goal, initial, actions, transition_model, cost)
     busca = BidirectionalBestFirstSearch(Arad2Bucarest, lambda node: node.path_cost, 
                                          Bucarest2Arad, lambda node: node.path_cost)
@@ -465,6 +465,68 @@ def main():
         print(step.state, step.path_cost)
     for step in busca.path(nodes[1])[::-1]:
         print(step.state, step.path_cost)
+
+    h_dlr = {'Arad': 366, 'Bucharest': 0, 'Craiova': 160, 'Drobeta': 242, 
+         'Eforie': 161, 'Fagaras': 176, 'Giurgiu': 77, 'Hirsova': 151, 
+         'Iasi': 226, 'Lugoj': 244, 'Mehadia': 241, 'Neamt': 234, 
+         'Oradea': 380, 'Pitesti': 100, 'Rimnicu Vilcea': 193, 
+         'Sibiu': 253, 'Timisoara': 329, 'Urziceni': 80, 
+         'Vaslui': 199, 'Zerind': 374}
     
+    print("__________________________")
+    print("Greedy best-first search (Arad -> Bucharest):")
+    busca = BestFirstSearch(Arad2Bucarest, lambda node: h_dlr[node.state])
+    node = busca.search()
+    print(node.state, node.path_cost)
+    print("Solution:")
+    for step in busca.path(node):
+        print(step.state, step.path_cost)
+
+    print("__________________________")
+    print("A* search (Arad -> Bucharest):")
+    busca = BestFirstSearch(Arad2Bucarest, lambda node: node.path_cost + h_dlr[node.state])
+    node = busca.search()
+    print(node.state, node.path_cost)
+    print("Solution:")
+    for step in busca.path(node):
+        print(step.state, step.path_cost)
+    
+    dlrMax = max(h_dlr.values())
+    h2_dlr = {}
+    for state in states:
+        h2_dlr[state] = dlrMax - h_dlr[state]
+
+    print("__________________________")
+    print("weighted A∗ search (Arad -> Bucharest):")
+    wList = [1.0, 1.2, 1.4, 1.6, 1.8]
+    for w in wList:
+        print("Weight = ", w) 
+        busca = BestFirstSearch(Arad2Bucarest, lambda node: node.path_cost + w*h_dlr[node.state])
+        node = busca.search()
+        print(node.state, node.path_cost)
+        print("Solution:")
+        for step in busca.path(node):
+            print(step.state, step.path_cost)
+    
+    dlrMax = max(h_dlr.values())
+    h2_dlr = {}
+    for state in states:
+        h2_dlr[state] = dlrMax - h_dlr[state]
+
+    
+    print("__________________________")
+    print("Bidirectional A* search (Arad -> Bucharest):")
+    #Bucarest2Arad = Problem(states, goal, initial, actions, transition_model, cost)
+    busca = BidirectionalBestFirstSearch(Arad2Bucarest, lambda node: node.path_cost + h_dlr[node.state], 
+                                         Bucarest2Arad, lambda node: node.path_cost + h2_dlr[node.state])
+    nodes = busca.search()
+    print(nodes[0].state, nodes[0].path_cost, 
+          nodes[1].state, nodes[1].path_cost, nodes[0].path_cost + nodes[1].path_cost)
+    print("Solution:")
+    for step in busca.path(nodes[0]):
+        print(step.state, step.path_cost)
+    for step in busca.path(nodes[1])[::-1]:
+        print(step.state, step.path_cost)
+
 if __name__ == '__main__':
     main()
