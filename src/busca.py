@@ -81,6 +81,20 @@ class PriorityQueue(Frontier):
         self.elements.append(node)
         self.elements = sorted(self.elements, key = self.f)
 
+class PriorityQueueK(Frontier): 
+        
+    def __init__(self,k, f):
+        super().__init__()            # lista de nós
+        self.f = f                  # função de avaliação f
+        self.k = k                  # número de nós a serem expandidos
+    
+    def add(self, node):
+        # ADD(node, frontier) inserts node into its proper place in the queue.
+        self.elements.append(node)
+        self.elements = sorted(self.elements, key = self.f)
+        if len(self.elements) > self.k:
+            self.elements = self.elements[:self.k]
+
 class FIFOQueue(Frontier):
         
     def add(self, node):
@@ -114,7 +128,7 @@ class BestFirstSearch:
                 print(node.state, node.path_cost)
             for child in self.expand(node):
                 s = child.state
-                if s not in reached or child.path_cost < reached[s].path_cost:
+                if s not in reached or self.f(child) < self.f(reached[s]):
                     reached[s] = child
                     frontier.add(child)
         return None
@@ -355,11 +369,35 @@ class BidirectionalBestFirstSearch:
             node = node.parent
         return path_back[::-1]
 
+class IDAStar(BestFirstSearch):
+    def __init__(self, problem, f):
+        super().__init__(problem, f)
+
+    def search(self, k = 1):
+        node = Node(self.problem.initial)
+        frontier = PriorityQueueK(k, self.f)
+        frontier.add(node)
+        print(len(frontier.elements))
+        reached = {self.problem.initial: node}
+        while not frontier.is_empty():
+            node = frontier.pop()
+            if self.problem.goal_test(node.state):
+                return node
+            else:
+                print(node.state, node.path_cost)
+            for child in self.expand(node):
+                print("child", child.state, child.path_cost)
+                s = child.state
+                if self.f(child) < self.f(node):
+                    frontier.add(child)
+                    reached[s] = child
+        return None
+
 def main():
     states = ['Arad', 'Zerind', 'Oradea', 'Sibiu', 'Timisoara', 
-          'Lugoj', 'Mehadia', 'Drobeta', 'Craiova', 'Rimnicu Vilcea', 
-          'Fagaras', 'Pitesti', 'Bucharest', 'Giurgiu', 'Urziceni', 
-          'Hirsova', 'Eforie', 'Vaslui', 'Iasi', 'Neamt']
+        'Lugoj', 'Mehadia', 'Drobeta', 'Craiova', 'Rimnicu Vilcea', 
+        'Fagaras', 'Pitesti', 'Bucharest', 'Giurgiu', 'Urziceni', 
+        'Hirsova', 'Eforie', 'Vaslui', 'Iasi', 'Neamt']
     initial = 'Arad'
     goal = 'Bucharest'
     actions = {'Arad': ['toZerind', 'toSibiu', 'toTimisoara'],
@@ -498,7 +536,7 @@ def main():
 
     print("__________________________")
     print("weighted A∗ search (Arad -> Bucharest):")
-    wList = [1.0, 1.2, 1.4, 1.6, 1.8]
+    wList = [0, 1.0, 1.2, 1.4, 1.6, 1.8, 500]
     for w in wList:
         print("Weight = ", w) 
         busca = BestFirstSearch(Arad2Bucarest, lambda node: node.path_cost + w*h_dlr[node.state])
@@ -527,6 +565,19 @@ def main():
         print(step.state, step.path_cost)
     for step in busca.path(nodes[1])[::-1]:
         print(step.state, step.path_cost)
+
+    print("__________________________")
+    print("Iterative deepening A* search (Arad -> Bucharest):")
+    busca = IDAStar(Arad2Bucarest, lambda node: node.path_cost + h_dlr[node.state])
+    node = busca.search(3)
+    if node:
+        print(node.state, node.path_cost)
+        print("Solution:")
+        for step in busca.path(node):
+            print(step.state, step.path_cost)
+    else:
+        print("No solution found.")
+
 
 if __name__ == '__main__':
     main()
